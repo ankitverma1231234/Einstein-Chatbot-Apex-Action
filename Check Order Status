@@ -1,0 +1,55 @@
+public class CheckOrderStatus {
+    
+    public class OrderOutput {
+        @InvocableVariable(required=true)
+        public String OrderStatus;
+    }
+    
+    public class OrderInput {
+        @InvocableVariable(required=true)
+        public String OrderNumber;
+    }
+    
+    @InvocableMethod(Label='Check Order Status')
+    public static List<OrderOutput> getOrderStatus(List<OrderInput> OrderInputs) {
+        Set<String> orderNumbers = new Set<String>();
+        
+        for(OrderInput orderInp : OrderInputs) {
+            orderNumbers.add(orderInp.OrderNumber);
+        }
+        
+        // Query All orders
+        List<Order> orders = [SELECT Id, Status, OrderNumber FROM Order WHERE OrderNumber IN :orderNumbers];
+        
+        System.debug('Query executed. Number of orders found: ' + orders.size());
+        
+        // Create a map for Order Status number and Status value
+        Map<String, String> orderMap = new Map<String, String>();
+        
+        for(Order ord : orders) {
+            orderMap.put(ord.OrderNumber, ord.Status);  
+        }
+        
+        System.debug('Order map created: ' + orderMap);
+        
+        // Build an Order Status Value for the Output
+        List<OrderOutput> orderOutputs = new List<OrderOutput>();
+        
+        for(OrderInput orderInput : OrderInputs) {
+            OrderOutput orderOutput = new OrderOutput();  
+            
+            // Check if we have Status for this order
+            if(orderMap.containsKey(orderInput.OrderNumber))  {
+                orderOutput.OrderStatus = orderMap.get(orderInput.OrderNumber);
+            } else {
+                orderOutput.OrderStatus = 'Order not found';
+            }
+            
+            System.debug('Order Number: ' + orderInput.OrderNumber + ', Order Status: ' + orderOutput.OrderStatus);
+            
+            orderOutputs.add(orderOutput);
+        }
+        
+        return orderOutputs;
+    }
+}
