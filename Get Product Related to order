@@ -1,0 +1,57 @@
+public class Checkorderproduct {
+    
+    public class OrderOutput {
+        @InvocableVariable(required=true)
+        public String ProductNamesString;  // Updated to String
+        
+        @InvocableVariable(required=true)
+        public List<String> ProductNames;
+    }
+    
+    public class OrderInput {
+        @InvocableVariable(required=true)
+        public String OrderNumber;
+    }
+    
+    @InvocableMethod(Label='Check Order Products')
+    public static List<OrderOutput> getOrderProducts(List<OrderInput> OrderInputs) {
+        Set<String> orderNumbers = new Set<String>();
+        
+        for(OrderInput orderInp : OrderInputs) {
+            orderNumbers.add(orderInp.OrderNumber);
+        }
+        
+        // Query OrderItems related to the Orders
+        List<OrderItem> orderItems = [SELECT Id, Product2.Name, Order.OrderNumber FROM OrderItem WHERE Order.OrderNumber IN :orderNumbers];
+        
+        // Create a map for OrderNumber and List of Product Names
+        Map<String, List<String>> orderProductMap = new Map<String, List<String>>();
+        
+        for(OrderItem item : orderItems) {
+            if(!orderProductMap.containsKey(item.Order.OrderNumber)) {
+                orderProductMap.put(item.Order.OrderNumber, new List<String>());
+            }
+            orderProductMap.get(item.Order.OrderNumber).add(item.Product2.Name);
+        }
+        
+        // Build a List of OrderOutput
+        List<OrderOutput> orderOutputs = new List<OrderOutput>();
+        
+        for(OrderInput orderInput : OrderInputs) {
+            OrderOutput orderOutput = new OrderOutput();  
+            
+            // Check if we have Product Names for this order
+            if(orderProductMap.containsKey(orderInput.OrderNumber))  {
+                orderOutput.ProductNames = orderProductMap.get(orderInput.OrderNumber);
+                orderOutput.ProductNamesString = String.join(orderOutput.ProductNames, ', ');
+            } else {
+                orderOutput.ProductNames = new List<String>{'No products found'};
+                orderOutput.ProductNamesString = 'No products found';
+            }
+            
+            orderOutputs.add(orderOutput);
+        }
+        
+        return orderOutputs;
+    }
+}
