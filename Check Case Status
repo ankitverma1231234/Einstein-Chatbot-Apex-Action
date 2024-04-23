@@ -1,0 +1,55 @@
+public class CheckCaseStatus {
+    
+    public class CaseOutput {
+        @InvocableVariable(required=true)
+        public String CaseStatus;
+    }
+    
+    public class CaseInput {
+        @InvocableVariable(required=true)
+        public String CaseNumber;
+    }
+    
+    @InvocableMethod(Label='Check Case Status')
+    public static List<CaseOutput> getCaseStatus(List<CaseInput> CaseInputs) {
+        Set<String> caseNumbers = new Set<String>();
+        
+        for(CaseInput caseInp : CaseInputs) {
+            caseNumbers.add(caseInp.CaseNumber);
+        }
+        
+        // Query All cases
+        List<Case> cases = [SELECT Id, Status, CaseNumber FROM Case WHERE CaseNumber IN :caseNumbers];
+        
+        System.debug('Query executed. Number of cases found: ' + cases.size());
+        
+        // Create a map for Case Status number and Status value
+        Map<String, String> caseMap = new Map<String, String>();
+        
+        for(Case vcase : cases) {
+            caseMap.put(vcase.CaseNumber, vcase.Status);  
+        }
+        
+        System.debug('Case map created: ' + caseMap);
+        
+        // Build a order Status Value for the Output
+        List<CaseOutput> caseOutputs = new List<CaseOutput>();
+        
+        for(CaseInput caseInput : CaseInputs) {
+            CaseOutput caseOutput = new CaseOutput();  
+            
+            // Check if we have Status for this order
+            if(caseMap.containsKey(caseInput.CaseNumber))  {
+                caseOutput.CaseStatus = caseMap.get(caseInput.CaseNumber);
+            } else {
+                caseOutput.CaseStatus = 'Case not found';
+            }
+            
+            System.debug('Case Number: ' + caseInput.CaseNumber + ', Case Status: ' + caseOutput.CaseStatus);
+            
+            caseOutputs.add(caseOutput);
+        }
+        
+        return caseOutputs;
+    }
+}
